@@ -13,8 +13,9 @@ jobs:
     runs-on: self-hosted   # uses your laptop runner
 
     env:
-      APP_BASE_URL: "http://host.docker.internal:8001"
-      LOGIN_URL: "http://host.docker.internal:8001/login/"
+      # Host can reach the app on localhost
+      APP_BASE_URL: "http://host.docker.internal:8001"   # for ZAP (in container)
+      LOGIN_URL: "http://localhost:8001/login/"          # for PowerShell login
       ZAP_USERNAME: "testuser1"
       ZAP_PASSWORD: "Password@1"
 
@@ -42,7 +43,27 @@ jobs:
 
           echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
 
-          Start-Sleep -Seconds 20
+      - name: Wait for app to be ready
+        run: |
+          $maxAttempts = 10
+          $attempt = 1
+          while ($attempt -le $maxAttempts) {
+            Write-Host "Checking app health at $env:LOGIN_URL (attempt $attempt/$maxAttempts)..."
+            try {
+              $resp = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -UseBasicParsing -TimeoutSec 5
+              if ($resp.StatusCode -eq 200) {
+                Write-Host "App is up."
+                break
+              }
+            } catch {
+              Write-Host "App not ready yet: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 3
+            $attempt++
+          }
+          if ($attempt -gt $maxAttempts) {
+            throw "App did not become ready in time."
+          }
 
       - name: Perform login to app (simple session warm-up)
         run: |
