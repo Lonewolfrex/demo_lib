@@ -13,8 +13,8 @@ jobs:
     runs-on: self-hosted   # uses your laptop runner
 
     env:
-      APP_BASE_URL: "http://localhost:8001/login"
-      LOGIN_URL: "http://localhost:8001/login"
+      APP_BASE_URL: "http://localhost:8001"
+      LOGIN_URL: "http://localhost:8001"
       ZAP_USERNAME: "testuser1"
       ZAP_PASSWORD: "Password@1"
 
