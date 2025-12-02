@@ -36,7 +36,7 @@ jobs:
 
           echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
 
-          Start-Sleep -Seconds 300
+          Start-Sleep -Seconds 120
 
       - name: Stop container
         if: always()

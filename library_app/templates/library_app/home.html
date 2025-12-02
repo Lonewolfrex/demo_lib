@@ -4,42 +4,112 @@
 {% block title %}Home - Book Library{% endblock %}
 
 {% block content %}
-  <h2>Your Library</h2>
 
-  <h3>Available Books (Rent)</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th><th>Author</th><th>Status</th><th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for book in books %}
-      <tr>
-        <td>{{ book.title }}</td>
-        <td>{{ book.author }}</td>
-        <td>
-          {% if book.available %}
-            <span class="status-available">Available</span>
-          {% else %}
-            <span class="status-rented">Rented</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if book.available %}
-            <a href="{% url 'rent-book' book.id %}" class="btn-action">Rent</a>
-          {% else %}
-            <span class="disabled">Not Available</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4">No books available.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {% if tab == 'rent' %}
+    <h2>Rent Books</h2>
+    <h3>Available Books (Rent)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th><th>Author</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for book in books %}
+        <tr>
+          <td>{{ book.title }}</td>
+          <td>{{ book.author }}</td>
+          <td>
+            {% if book.available %}
+              <span class="status-available">Available</span>
+            {% else %}
+              <span class="status-rented">Rented</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if book.available %}
+              <a href="{% url 'rent-book' book.id %}" class="btn-action">Rent</a>
+            {% else %}
+              <span class="disabled">Not Available</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No books available.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
-  <h3>Books Available to Buy</h3>
+    {% if books and books.paginator %}
+      <div class="pagination">
+        {% if books.has_previous %}
+          <a href="?tab=rent&page={{ books.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ books.number }} of {{ books.paginator.num_pages }}</span>
+        {% if books.has_next %}
+          <a href="?tab=rent&page={{ books.next_page_number }}">Next</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% elif tab == 'buy' %}
+    <h2>Buy Books</h2>
+    <h3>Books Available to Buy</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Genre</th>
+          <th>Age Group</th>
+          <th>Price</th>
+          <th>Discount (%)</th>
+          <th>Offer Price</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for book in buyable_books %}
+        <tr>
+          <td>{{ book.title }}</td>
+          <td>{{ book.author }}</td>
+          <td>{{ book.genre }}</td>
+          <td>{{ book.get_age_group_display }}</td>
+          <td>{{ book.price }}</td>
+          <td>{{ book.discount_percent }}</td>
+          <td>{{ book.offer_price }}</td>
+          <td>
+            <a href="{% url 'buy-book' book.id %}" class="btn-action btn-buy">Buy</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">No books available to buy.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if buyable_books and buyable_books.paginator %}
+      <div class="pagination">
+        {% if buyable_books.has_previous %}
+          <a href="?tab=buy&page={{ buyable_books.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ buyable_books.number }} of {{ buyable_books.paginator.num_pages }}</span>
+        {% if buyable_books.has_next %}
+          <a href="?tab=buy&page={{ buyable_books.next_page_number }}">Next</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% elif tab == 'donate' %}
+    <h2>Donate a Book</h2>
+
+    <form method="POST" action="{% url 'donate-book' %}" class="form">
+      {% csrf_token %}
+      {{ donation_form.as_p }}
+      <button type="submit" class="btn-primary">Donate</button>
+    </form>
+
+ <h3>Your Donations</h3>
   <table>
     <thead>
       <tr>
@@ -47,75 +117,8 @@
         <th>Author</th>
         <th>Genre</th>
         <th>Age Group</th>
-        <th>Price</th>
-        <th>Discount (%)</th>
-        <th>Offer Price</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for book in buyable_books %}
-      <tr>
-        <td>{{ book.title }}</td>
-        <td>{{ book.author }}</td>
-        <td>{{ book.genre }}</td>
-        <td>{{ book.get_age_group_display }}</td>
-        <td>{{ book.price }}</td>
-        <td>{{ book.discount_percent }}</td>
-        <td>{{ book.offer_price }}</td>
-        <td>
-          <a href="{% url 'buy-book' book.id %}" class="btn-action btn-buy">Buy</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8">No books available to buy.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3>Your Rentals</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Book</th><th>Rented On</th><th>Returned On</th><th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for rental in rentals %}
-      <tr>
-        <td>{{ rental.book.title }}</td>
-        <td>{{ rental.rented_on }}</td>
-        <td>
-          {% if rental.returned_on %}
-            {{ rental.returned_on }}
-          {% else %}
-            Currently rented
-          {% endif %}
-        </td>
-        <td>
-          {% if not rental.returned_on %}
-            <a href="{% url 'return-book' rental.id %}" class="btn-action">Return</a>
-          {% else %}
-            <span class="disabled">Returned</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4">No rentals yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3>Your Donations</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Author</th>
         <th>MRP</th>
         <th>Condition</th>
-        <th>Genre</th>
-        <th>Age Group</th>
         <th>Donated On</th>
       </tr>
     </thead>
@@ -125,43 +128,119 @@
         {% if donation.book %}
           <td>{{ donation.book.title }}</td>
           <td>{{ donation.book.author }}</td>
-          <td>{{ donation.book.original_mrp }}</td>
-          <td>{{ donation.book.get_condition_display }}</td>
           <td>{{ donation.book.genre }}</td>
           <td>{{ donation.book.get_age_group_display }}</td>
+          <td>{{ donation.book.original_mrp }}</td>
+          <td>{{ donation.book.get_condition_display }}</td>
         {% else %}
-          <td colspan="6">Legacy donation without book details</td>
+          <td colspan="6" style="font-style: italic; color: #888;">
+            Legacy donation without detailed book information
+          </td>
         {% endif %}
         <td>{{ donation.donated_on }}</td>
       </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3>Your Purchases</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Book</th><th>Purchased On</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for purchase in purchases %}
-      <tr>
-        <td>{{ purchase.book.title }}</td>
-        <td>{{ purchase.purchased_on }}</td>
-      </tr>
       {% empty %}
-      <tr><td colspan="2">No purchases yet.</td></tr>
+      <tr>
+        <td colspan="7">No donations yet.</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  <h3>Donate a Book</h3>
-  <form method="POST" action="{% url 'donate-book' %}" class="form">
-    {% csrf_token %}
-    {{ donation_form.as_p }}
-    <button type="submit" class="btn-primary">Donate</button>
-  </form>
+
+  {% elif tab == 'activity' %}
+    <h2>Your Activity</h2>
+
+    <h3>Your Rentals</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Book</th><th>Rented On</th><th>Returned On</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rental in rentals %}
+        <tr>
+          <td>{{ rental.book.title }}</td>
+          <td>{{ rental.rented_on }}</td>
+          <td>
+            {% if rental.returned_on %}
+              {{ rental.returned_on }}
+            {% else %}
+              Currently rented
+            {% endif %}
+          </td>
+          <td>
+            {% if not rental.returned_on %}
+              <a href="{% url 'return-book' rental.id %}" class="btn-action">Return</a>
+            {% else %}
+              <span class="disabled">Returned</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No rentals yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>Your Purchases</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Book</th><th>Purchased On</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for purchase in purchases %}
+        <tr>
+          <td>{{ purchase.book.title }}</td>
+          <td>{{ purchase.purchased_on }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2">No purchases yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>Your Donations</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>MRP</th>
+          <th>Condition</th>
+          <th>Genre</th>
+          <th>Age Group</th>
+          <th>Donated On</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for donation in donations %}
+        <tr>
+          {% if donation.book %}
+            <td>{{ donation.book.title }}</td>
+            <td>{{ donation.book.author }}</td>
+            <td>{{ donation.book.original_mrp }}</td>
+            <td>{{ donation.book.get_condition_display }}</td>
+            <td>{{ donation.book.genre }}</td>
+            <td>{{ donation.book.get_age_group_display }}</td>
+          {% else %}
+            <td colspan="6">Legacy donation without book details</td>
+          {% endif %}
+          <td>{{ donation.donated_on }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No donations yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% else %}
+    {# Fallback: default to Rent tab #}
+    <h2>Your Library</h2>
+    <p>Select an option from the navigation bar above.</p>
+  {% endif %}
 
 {% endblock %}
