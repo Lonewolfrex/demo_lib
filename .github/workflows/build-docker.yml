@@ -12,6 +12,13 @@ jobs:
   build-run-cleanup:
     runs-on: self-hosted   # uses your laptop runner
 
+    env:
+      # Host can reach the app on localhost.
+      APP_BASE_URL: "http://host.docker.internal:8001"   # for ZAP (in container)
+      LOGIN_URL: "http://localhost:8001/login/"          # for PowerShell login
+      ZAP_USERNAME: "testuser1"
+      ZAP_PASSWORD: "Password@1"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,7 +32,7 @@ jobs:
           $IMAGE_TAG = "${{ github.sha }}"
           docker build -t "$IMAGE_NAME`:$IMAGE_TAG" .
 
-      - name: Run container for 5 minutes
+      - name: Run container
         id: run_container
         run: |
           $IMAGE_NAME = "book-library-app"
@@ -36,7 +43,69 @@ jobs:
 
           echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
 
-          Start-Sleep -Seconds 120
+      - name: Wait for app to be ready
+        run: |
+          $maxAttempts = 10
+          $attempt = 1
+          while ($attempt -le $maxAttempts) {
+            Write-Host "Checking app health at $env:LOGIN_URL (attempt $attempt/$maxAttempts)..."
+            try {
+              $resp = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -UseBasicParsing -TimeoutSec 5
+              if ($resp.StatusCode -eq 200) {
+                Write-Host "App is up."
+                break
+              }
+            } catch {
+              Write-Host "App not ready yet: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 3
+            $attempt++
+          }
+          if ($attempt -gt $maxAttempts) {
+            throw "App did not become ready in time."
+          }
+
+      - name: Perform login to app (simple session warm-up)
+        run: |
+          Write-Host "Logging in to $env:LOGIN_URL with test credentials"
+
+          # 1. GET login page to get CSRF token + session
+          $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
+
+          $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="')[1].Split('"')[0]
+
+          # 2. POST login with CSRF + session
+          $body = @{
+            csrfmiddlewaretoken = $csrfToken
+            username = "$env:ZAP_USERNAME"
+            password = "$env:ZAP_PASSWORD"
+          }
+
+          Invoke-WebRequest `
+            -Uri $env:LOGIN_URL `
+            -Method POST `
+            -WebSession $session `
+            -Body $body `
+            -ContentType "application/x-www-form-urlencoded"
+
+      - name: Run ZAP baseline scan
+        run: |
+          New-Item -ItemType Directory -Path "./zap-reports" -Force | Out-Null
+
+          Write-Host "Starting ZAP Baseline Scan against $env:APP_BASE_URL"
+
+          docker run --rm -t `
+            -v "${PWD}/zap-reports:/zap/wrk:rw" `
+            ghcr.io/zaproxy/zaproxy:stable `
+            zap-baseline.py -t $env:APP_BASE_URL -r zap-report.html -I -m 5
+
+      - name: Upload ZAP report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-reports/zap-report.html
+          if-no-files-found: error
 
       - name: Stop container
         if: always()
