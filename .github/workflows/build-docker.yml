@@ -13,7 +13,7 @@ jobs:
     runs-on: self-hosted   # uses your laptop runner
 
     env:
-      # Host can reach the app on localhost
+      # Host can reach the app on localhost.
       APP_BASE_URL: "http://host.docker.internal:8001"   # for ZAP (in container)
       LOGIN_URL: "http://localhost:8001/login/"          # for PowerShell login
       ZAP_USERNAME: "testuser1"
