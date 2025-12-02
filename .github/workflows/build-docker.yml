@@ -47,8 +47,11 @@ jobs:
       - name: Perform login to app (simple session warm-up)
         run: |
           Write-Host "Logging in to $env:LOGIN_URL with test credentials"
+          $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
+          $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="')[1].Split('"')[0]
 
           $body = @{
+            csrfmiddlewaretoken = $csrfToken
             username = "$env:APP_USERNAME"
             password = "$env:APP_PASSWORD"
           }
@@ -60,9 +63,10 @@ jobs:
           Invoke-WebRequest `
             -Uri $env:LOGIN_URL `
             -Method POST `
+            -WebSession $session `
             -Body $body `
             -ContentType "application/x-www-form-urlencoded" `
-            -UseBasicParsing
+            
 
       - name: Run ZAP baseline scan
         run: |
