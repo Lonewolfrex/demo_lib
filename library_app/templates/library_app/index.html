@@ -8,22 +8,34 @@
   <link rel="stylesheet" href="{% static 'library_app/styles.css' %}" />
 </head>
 <body>
-  <div class="container">
-    <header style="display: flex; justify-content: space-between; align-items: center;">
-      <h1><a href="{% url 'library-home' %}" style="text-decoration:none; color:#2c3e50;">Book Library</a></h1>
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="{% url 'library-home' %}" class="nav-brand">Book Library</a>
       {% if user.is_authenticated %}
-        <div>
-          <span>Welcome, {{ user.username }}!</span>
-          <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
-        </div>
-      {% else %}
-        <div>
-          <a href="{% url 'login' %}" class="btn-primary">Login</a>
-          <a href="{% url 'register' %}" class="btn-primary">Register</a>
-        </div>
+        <a href="{% url 'library-home' %}?tab=rent" class="nav-link">Rent</a>
+        <a href="{% url 'library-home' %}?tab=buy" class="nav-link">Buy</a>
+        <a href="{% url 'library-home' %}?tab=donate" class="nav-link">Donate</a>
       {% endif %}
-    </header>
+    </div>
+    <div class="nav-right">
+      {% if user.is_authenticated %}
+      <div class="dropdown">
+        <button class="dropbtn">
+          {{ user.username }} ▼
+        </button>
+        <div class="dropdown-content">
+          <a href="{% url 'library-home' %}?tab=activity">User activities</a>
+          <a href="{% url 'logout' %}">Logout</a>
+        </div>
+      </div>
+      {% else %}
+        <a href="{% url 'login' %}" class="nav-link">Login</a>
+        <a href="{% url 'register' %}" class="nav-link">Register</a>
+      {% endif %}
+    </div>
+  </nav>
 
+  <div class="container">
     {% if messages %}
     <ul class="messages">
       {% for message in messages %}
@@ -33,9 +45,7 @@
     {% endif %}
 
     <main>
-      {% block content %}
-      <!-- Page specific content goes here -->
-      {% endblock %}
+      {% block content %}{% endblock %}
     </main>
   </div>
 </body>
