@@ -13,8 +13,8 @@ jobs:
     runs-on: self-hosted   # uses your laptop runner
 
     env:
-      APP_BASE_URL: "http://localhost:8001"
-      LOGIN_URL: "http://localhost:8001/login/"
+      APP_BASE_URL: "http://host.docker.internal:8001"
+      LOGIN_URL: "http://host.docker.internal:8001/login/"
       ZAP_USERNAME: "testuser1"
       ZAP_PASSWORD: "Password@1"
 
@@ -47,26 +47,25 @@ jobs:
       - name: Perform login to app (simple session warm-up)
         run: |
           Write-Host "Logging in to $env:LOGIN_URL with test credentials"
+
+          # 1. GET login page to get CSRF token + session
           $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
+
           $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="')[1].Split('"')[0]
 
+          # 2. POST login with CSRF + session
           $body = @{
             csrfmiddlewaretoken = $csrfToken
-            username = "$env:APP_USERNAME"
-            password = "$env:APP_PASSWORD"
+            username = "$env:ZAP_USERNAME"
+            password = "$env:ZAP_PASSWORD"
           }
-
-          # If your login endpoint is JSON instead of form-urlencoded, switch to
-          # $jsonBody = $body | ConvertTo-Json
-          # and use -ContentType "application/json" -Body $jsonBody
 
           Invoke-WebRequest `
             -Uri $env:LOGIN_URL `
             -Method POST `
             -WebSession $session `
             -Body $body `
-            -ContentType "application/x-www-form-urlencoded" `
-            
+            -ContentType "application/x-www-form-urlencoded"
 
       - name: Run ZAP baseline scan
         run: |
