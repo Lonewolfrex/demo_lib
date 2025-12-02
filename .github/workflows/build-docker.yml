@@ -1,4 +1,4 @@
-name: Build and run Docker locally (5 mins)
+name: Build and run Docker locally (with SonarCloud)
 
 on:
   push:
@@ -9,8 +9,38 @@ on:
       - v1
 
 jobs:
+  sonarcloud:
+    name: SonarCloud SAST
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # better history for SonarCloud
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # required for PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}     # define in repo secrets
+        with:
+          projectBaseDir: .  # sonar-project.properties will be picked up here
+
   build-run-cleanup:
+    name: Build & Run Docker on Self-Hosted
     runs-on: self-hosted   # uses your laptop runner
+    needs: sonarcloud      # run only after SonarCloud job succeeds
 
     steps:
       - name: Checkout repository
@@ -25,7 +55,7 @@ jobs:
           $IMAGE_TAG = "${{ github.sha }}"
           docker build -t "$IMAGE_NAME`:$IMAGE_TAG" .
 
-      - name: Run container for 5 minutes
+      - name: Run container for 2 minutes
         id: run_container
         run: |
           $IMAGE_NAME = "book-library-app"
