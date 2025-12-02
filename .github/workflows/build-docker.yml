@@ -1,0 +1,59 @@
+name: Build and run Docker locally (5 mins)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - feature/**
+      - v1
+
+jobs:
+  build-run-cleanup:
+    runs-on: self-hosted   # uses your laptop runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: docker version
+
+      - name: Build Docker image
+        run: |
+          $IMAGE_NAME = "book-library-app"
+          $IMAGE_TAG = "${{ github.sha }}"
+          docker build -t "$IMAGE_NAME`:$IMAGE_TAG" .
+
+      - name: Run container for 5 minutes
+        id: run_container
+        run: |
+          $IMAGE_NAME = "book-library-app"
+          $IMAGE_TAG = "${{ github.sha }}"
+
+          $CONTAINER_ID = docker run -d -p 8001:8001 "$IMAGE_NAME`:$IMAGE_TAG"
+          Write-Host "Container started: $CONTAINER_ID"
+
+          echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
+
+          Start-Sleep -Seconds 300
+
+      - name: Stop container
+        if: always()
+        run: |
+          $CONTAINER_ID = "${{ steps.run_container.outputs.container_id }}"
+          if ($CONTAINER_ID) {
+            Write-Host "Stopping container $CONTAINER_ID"
+            docker stop $CONTAINER_ID 2>$null
+            docker rm $CONTAINER_ID 2>$null
+          } else {
+            Write-Host "No container ID found to stop."
+          }
+
+      - name: Remove image
+        if: always()
+        run: |
+          $IMAGE_NAME = "book-library-app"
+          $IMAGE_TAG = "${{ github.sha }}"
+          Write-Host "Removing image $IMAGE_NAME`:$IMAGE_TAG"
+          docker rmi "$IMAGE_NAME`:$IMAGE_TAG" 2>$null
