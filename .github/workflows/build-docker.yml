@@ -14,7 +14,7 @@ jobs:
 
     env:
       APP_BASE_URL: "http://localhost:8001"
-      LOGIN_URL: "http://localhost:8001"
+      LOGIN_URL: "http://localhost:8001/login/"
       ZAP_USERNAME: "testuser1"
       ZAP_PASSWORD: "Password@1"
 
