@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Book Library{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'library_app/styles.css' %}" />
+</head>
+<body>
+  <div class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+      <h1><a href="{% url 'library-home' %}" style="text-decoration:none; color:#2c3e50;">Book Library</a></h1>
+      {% if user.is_authenticated %}
+        <div>
+          <span>Welcome, {{ user.username }}!</span>
+          <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+        </div>
+      {% else %}
+        <div>
+          <a href="{% url 'login' %}" class="btn-primary">Login</a>
+          <a href="{% url 'register' %}" class="btn-primary">Register</a>
+        </div>
+      {% endif %}
+    </header>
+
+    {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <main>
+      {% block content %}
+      <!-- Page specific content goes here -->
+      {% endblock %}
+    </main>
+  </div>
+</body>
+</html>
