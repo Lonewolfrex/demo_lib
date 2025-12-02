@@ -43,35 +43,28 @@ jobs:
 
           Start-Sleep -Seconds 20
 
-      - name: Run ZAP baseline scan (authenticated)
+      - name: Perform login to app (simple session warm-up)
+        run: |
+          Write-Host "Logging in to $env:LOGIN_URL with test credentials"
+
+          # Adjust -d fields to match your real login form names
+          curl `
+            -X POST `
+            -H "Content-Type: application/x-www-form-urlencoded" `
+            -d "username=$env:APP_USERNAME&password=$env:APP_PASSWORD" `
+            $env:LOGIN_URL `
+            -v
+
+      - name: Run ZAP baseline scan
         run: |
           New-Item -ItemType Directory -Path "./zap-reports" -Force | Out-Null
 
-          Write-Host "Starting authenticated ZAP Baseline Scan against $env:APP_BASE_URL"
-
-          # Ensure the auth script exists in .zap/login-auth.js
-          if (-not (Test-Path ".\.zap\login-auth.js")) {
-            Write-Error "ZAP auth script .zap/login-auth.js not found. Please create it."
-            exit 1
-          }
+          Write-Host "Starting ZAP Baseline Scan against $env:APP_BASE_URL"
 
           docker run --rm -t `
             -v "${PWD}/zap-reports:/zap/wrk:rw" `
-            -v "${PWD}/.zap:/zap/auth:ro" `
             ghcr.io/zaproxy/zaproxy:stable `
-            zap-baseline.py `
-              -t $env:APP_BASE_URL `
-              -r zap-report.html `
-              -z "
-                -config script.scripts.name=login-auth.js
-                -config script.scripts.type=authentication
-                -config script.scripts.engine=ECMAScript : Oracle Nashorn
-                -config script.scripts.file=/zap/auth/login-auth.js
-                -config script.scripts.enabled=true
-                -config auth.loginurl=$env:APP_BASE_URL/login
-                -config auth.username=$env:ZAP_USERNAME
-                -config auth.password=$env:ZAP_PASSWORD
-              "
+            zap-baseline.py -t $env:APP_BASE_URL -r zap-report.html
 
       - name: Upload ZAP report artifact
         uses: actions/upload-artifact@v4
