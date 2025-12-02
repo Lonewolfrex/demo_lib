@@ -1,9 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from .forms import UserRegisterForm
-from .models import Book, Rental, Donation
+from .models import Book, Rental, Donation, Purchase
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.contrib import messages
 
 def register_view(request):
     if request.method == 'POST':
@@ -37,24 +38,38 @@ def logout_view(request):
 @login_required
 def library_home(request):
     books = Book.objects.all()
-    return render(request, 'library_app/home.html', {'books': books})
+    rentals = Rental.objects.filter(user=request.user).order_by('-rented_on')
+    donations = Donation.objects.filter(user=request.user).order_by('-donated_on')
+    purchases = Purchase.objects.filter(user=request.user).order_by('-purchased_on')
+
+    context = {
+        'books': books,
+        'rentals': rentals,
+        'donations': donations,
+        'purchases': purchases,
+    }
+    return render(request, 'library_app/home.html', context)
 
 @login_required
 def rent_book(request, book_id):
-    book = Book.objects.get(id=book_id)
+    book = get_object_or_404(Book, id=book_id)
     if book.available:
         book.available = False
         book.save()
         Rental.objects.create(user=request.user, book=book)
+        messages.success(request, f'You rented "{book.title}".')
+    else:
+        messages.error(request, 'This book is not available.')
     return redirect('library-home')
 
 @login_required
 def return_book(request, rental_id):
-    rental = Rental.objects.get(id=rental_id, user=request.user)
+    rental = get_object_or_404(Rental, id=rental_id, user=request.user, returned_on__isnull=True)
     rental.returned_on = timezone.now()
     rental.save()
     rental.book.available = True
     rental.book.save()
+    messages.success(request, f'You returned "{rental.book.title}".')
     return redirect('library-home')
 
 @login_required
@@ -64,4 +79,14 @@ def donate_book(request):
         author = request.POST.get('author')
         if title and author:
             Donation.objects.create(user=request.user, book_title=title, author=author)
+            messages.success(request, f'Thank you for donating "{title}".')
+        else:
+            messages.error(request, 'Please provide both title and author.')
+    return redirect('library-home')
+
+@login_required
+def buy_book(request, book_id):
+    book = get_object_or_404(Book, id=book_id)
+    Purchase.objects.create(user=request.user, book=book)
+    messages.success(request, f'You bought "{book.title}".')
     return redirect('library-home')

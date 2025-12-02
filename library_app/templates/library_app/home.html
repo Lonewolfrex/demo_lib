@@ -1,3 +1,4 @@
+{# library_app/templates/library_app/home.html #}
 {% extends 'library_app/index.html' %}
 
 {% block title %}Home - Book Library{% endblock %}
@@ -27,14 +28,84 @@
         <td>
           {% if book.available %}
             <a href="{% url 'rent-book' book.id %}" class="btn-action">Rent</a>
-            <a href="{% url 'buy-book' book.id %}" class="btn-action btn-buy">Buy</a>
-          {% else %}
-            <span class="disabled">Not Available</span>
           {% endif %}
+          <a href="{% url 'buy-book' book.id %}" class="btn-action btn-buy">Buy</a>
         </td>
       </tr>
       {% empty %}
       <tr><td colspan="4">No books available.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Your Rentals</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Book</th><th>Rented On</th><th>Returned On</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rental in rentals %}
+      <tr>
+        <td>{{ rental.book.title }}</td>
+        <td>{{ rental.rented_on }}</td>
+        <td>
+          {% if rental.returned_on %}
+            {{ rental.returned_on }}
+          {% else %}
+            Currently rented
+          {% endif %}
+        </td>
+        <td>
+          {% if not rental.returned_on %}
+            <a href="{% url 'return-book' rental.id %}" class="btn-action">Return</a>
+          {% else %}
+            <span class="disabled">Returned</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No rentals yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Your Donations</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th><th>Author</th><th>Donated On</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for donation in donations %}
+      <tr>
+        <td>{{ donation.book_title }}</td>
+        <td>{{ donation.author }}</td>
+        <td>{{ donation.donated_on }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">No donations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Your Purchases</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Book</th><th>Purchased On</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for purchase in purchases %}
+      <tr>
+        <td>{{ purchase.book.title }}</td>
+        <td>{{ purchase.purchased_on }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="2">No purchases yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
