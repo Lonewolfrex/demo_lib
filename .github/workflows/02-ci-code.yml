@@ -1,0 +1,38 @@
+name: 02 - CI - Code Quality & Deps
+
+on:
+  push:
+    branches: [ main, dev, v1, feature/** ]
+  pull_request:
+    branches: [ main, dev, v1 ]
+
+jobs:
+  code-security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Optional: run tests here
+      # - name: Run tests
+      #   run: python manage.py test
+
+      - name: Snyk Open Source scan (requirements.txt)
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=requirements.txt --severity-threshold=medium

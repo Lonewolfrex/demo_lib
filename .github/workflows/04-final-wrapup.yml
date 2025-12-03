@@ -1,0 +1,45 @@
+name: 04 - Final Wrapup Cleanup
+
+on:
+  workflow_dispatch:
+  # Or auto-run after 03 - Container Security & ZAP DAST:
+  # workflow_run:
+  #   workflows: [ "03 - Container Security & ZAP DAST" ]
+  #   types: [ completed ]
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+
+    steps:
+      - name: List containers and images (before cleanup)
+        run: |
+          Write-Host "Containers:"
+          docker ps -a
+          Write-Host "Images:"
+          docker images
+
+      - name: Stop and remove library containers
+        run: |
+          $containers = docker ps -a --filter "ancestor=book-library-app" --format "{{.ID}}"
+          foreach ($cid in $containers) {
+            Write-Host "Stopping container $cid"
+            docker stop $cid 2>$null
+            Write-Host "Removing container $cid"
+            docker rm $cid 2>$null
+          }
+
+      - name: Remove library images
+        run: |
+          $images = docker images "book-library-app" --format "{{.Repository}}:{{.Tag}}"
+          foreach ($img in $images) {
+            Write-Host "Removing image $img"
+            docker rmi $img 2>$null
+          }
+
+      - name: List containers and images (after cleanup)
+        run: |
+          Write-Host "Containers:"
+          docker ps -a
+          Write-Host "Images:"
+          docker images
