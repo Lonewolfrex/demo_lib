@@ -1,0 +1,201 @@
+name: CI - Full Pipeline (Code → Remote Snyk → ZAP → Cleanup)
+
+on:
+  push:
+    branches: [ main, dev, v1, feature/** ]
+  pull_request:
+    branches: [ main, dev, v1 ]
+
+jobs:
+  # 1) Code setup (tests etc. if you want)
+  code-security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Optional: run tests here
+      # - name: Run tests
+      #   run: python manage.py test
+
+  # 2) Remote Snyk scan via API for already-imported project
+  snyk-remote-project-scan:
+    runs-on: ubuntu-latest
+    needs: code-security
+
+    env:
+      SNYK_API_URL: "https://api.snyk.io"
+      SNYK_ORG_ID: ${{ vars.SNYK_ORG_ID }}
+      SNYK_PROJECT_ID: ${{ vars.SNYK_PROJECT_ID }}
+
+    steps:
+      - name: Create Snyk report directory
+        run: mkdir -p snyk-remote-report
+
+      - name: Fetch Snyk issues for imported project
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "Fetching Snyk issues for org $SNYK_ORG_ID project $SNYK_PROJECT_ID"
+
+          curl -sS \
+            -H "Authorization: token $SNYK_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$SNYK_API_URL/api/v1/org/$SNYK_ORG_ID/project/$SNYK_PROJECT_ID/issues" \
+            -o snyk-remote-report/snyk-report.json
+
+      - name: Upload Snyk remote report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-remote-report
+          path: snyk-remote-report/snyk-report.json
+          if-no-files-found: error
+
+  # 3) Container runtime & ZAP DAST on self-hosted Windows
+  app-and-zap:
+    runs-on: self-hosted
+    needs: snyk-remote-project-scan
+
+    env:
+      IMAGE_NAME: "book-library-app"
+      IMAGE_TAG: "${{ github.sha }}"
+      APP_BASE_URL: "http://host.docker.internal:8001"
+      LOGIN_URL: "http://localhost:8001/login/"
+      ZAP_USERNAME: "testuser1"
+      ZAP_PASSWORD: "Password@1"
+
+    outputs:
+      container-id: ${{ steps.run_container.outputs.container_id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: docker version
+
+      - name: Pre-clean existing containers for this image
+        run: |
+          Write-Host "Cleaning containers created from $env:IMAGE_NAME`:$env:IMAGE_TAG..."
+          $containers = docker ps -a --filter "ancestor=$env:IMAGE_NAME`:$env:IMAGE_TAG" --format "{{.ID}}"
+          foreach ($cid in $containers) {
+            Write-Host "Stopping container $cid"
+            docker stop $cid 2>$null
+            Write-Host "Removing container $cid"
+            docker rm $cid 2>$null
+          }
+
+      - name: Build Docker image
+        run: |
+          docker build -t "$env:IMAGE_NAME`:$env:IMAGE_TAG" .
+
+      - name: Run app container
+        id: run_container
+        run: |
+          $CONTAINER_ID = docker run -d -p 8001:8001 "$env:IMAGE_NAME`:$env:IMAGE_TAG"
+          Write-Host "Container started: $CONTAINER_ID"
+          echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
+
+      - name: Wait for app to be ready
+        run: |
+          $loginUrl = "$env:LOGIN_URL"
+          $maxAttempts = 10
+          $attempt = 1
+          while ($attempt -le $maxAttempts) {
+            Write-Host "Checking app health at $loginUrl (attempt $attempt/$maxAttempts)..."
+            try {
+              $resp = Invoke-WebRequest -Uri $loginUrl -Method GET -UseBasicParsing -TimeoutSec 5
+              if ($resp.StatusCode -eq 200) {
+                Write-Host "App is up."
+                break
+              }
+            } catch {
+              Write-Host "App not ready yet: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 3
+            $attempt++
+          }
+          if ($attempt -gt $maxAttempts) {
+            throw "App did not become ready in time."
+          }
+
+      - name: Perform login to app (simple session warm-up)
+        run: |
+          Write-Host "Logging in to $env:LOGIN_URL with test credentials"
+
+          $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
+          $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="')[1].Split('"')[0]
+
+          $body = @{
+            csrfmiddlewaretoken = $csrfToken
+            username = "$env:ZAP_USERNAME"
+            password = "$env:ZAP_PASSWORD"
+          }
+
+          Invoke-WebRequest `
+            -Uri $env:LOGIN_URL `
+            -Method POST `
+            -WebSession $session `
+            -Body $body `
+            -ContentType "application/x-www-form-urlencoded"
+
+      - name: Run ZAP baseline scan
+        run: |
+          New-Item -ItemType Directory -Path "./zap-reports" -Force | Out-Null
+
+          Write-Host "Starting ZAP Baseline Scan against $env:APP_BASE_URL"
+
+          docker run --rm -t `
+            -v "${PWD}/zap-reports:/zap/wrk:rw" `
+            ghcr.io/zaproxy/zaproxy:stable `
+            zap-baseline.py -t $env:APP_BASE_URL -r zap-report.html -I -m 5
+
+      - name: Upload ZAP report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-reports/zap-report.html
+          if-no-files-found: error
+
+  # 4) Final Wrapup (cleanup), always runs after all previous jobs
+  final-wrapup:
+    runs-on: self-hosted
+    needs: [code-security, snyk-remote-project-scan, app-and-zap]
+    if: always()
+
+    env:
+      IMAGE_NAME: "book-library-app"
+      IMAGE_TAG: "${{ github.sha }}"
+
+    steps:
+      - name: Stop and remove library containers
+        run: |
+          $containers = docker ps -a --filter "ancestor=$env:IMAGE_NAME`:$env:IMAGE_TAG" --format "{{.ID}}"
+          foreach ($cid in $containers) {
+            Write-Host "Stopping container $cid"
+            docker stop $cid 2>$null
+            Write-Host "Removing container $cid"
+            docker rm $cid 2>$null
+          }
+
+      - name: Remove library images
+        run: |
+          $images = docker images "$env:IMAGE_NAME" --format "{{.Repository}}:{{.Tag}}"
+          foreach ($img in $images) {
+            Write-Host "Removing image $img"
+            docker rmi $img 2>$null
+          }
