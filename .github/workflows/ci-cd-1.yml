@@ -62,7 +62,7 @@ jobs:
             throw "App did not become ready in time."
           }
 
-  # 2) Code & deps security (Snyk), runs after initial-deploy
+  # 2) Code & deps security (Snyk), runs after initial-deploy.
   code-security:
     runs-on: ubuntu-latest
     needs: initial-deploy
