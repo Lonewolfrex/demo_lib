@@ -73,7 +73,7 @@ jobs:
             throw "App did not become ready in time."
           }
 
-  # 2) Code & deps security (Snyk), runs after initial-deploy
+  # 2) Code build/tests (no local Snyk here now), runs after initial-deploy
   code-security:
     runs-on: ubuntu-latest
     needs: initial-deploy
@@ -98,17 +98,42 @@ jobs:
       # - name: Run tests
       #   run: python manage.py test
 
-      - name: Snyk Open Source scan (requirements.txt)
-        uses: snyk/actions/python@master
+  # 2b) Remote Snyk scan via API for already-imported project
+  snyk-remote-project-scan:
+    runs-on: ubuntu-latest
+    needs: code-security
+
+    env:
+      SNYK_API_URL: "https://api.snyk.io"
+      SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
+      SNYK_PROJECT_ID: ${{ secrets.SNYK_PROJECT_ID }}
+
+    steps:
+      - name: Create Snyk report directory
+        run: mkdir -p snyk-remote-report
+
+      - name: Fetch Snyk issues for imported project
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=requirements.txt --severity-threshold=medium
+        run: |
+          echo "Fetching Snyk issues for org $env:SNYK_ORG_ID project $env:SNYK_PROJECT_ID"
+          curl -sS ^
+            -H "Authorization: token $env:SNYK_TOKEN" ^
+            -H "Content-Type: application/json" ^
+            "%SNYK_API_URL%/api/v1/org/%SNYK_ORG_ID%/project/%SNYK_PROJECT_ID%/issues" ^
+            -o snyk-remote-report/snyk-report.json
 
-  # 3) Container runtime & ZAP DAST, runs after code-security
+      - name: Upload Snyk remote report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-remote-report
+          path: snyk-remote-report/snyk-report.json
+          if-no-files-found: error
+
+  # 3) Container runtime & ZAP DAST, runs after remote Snyk scan
   container-and-dast:
     runs-on: self-hosted
-    needs: [initial-deploy, code-security]
+    needs: [initial-deploy, snyk-remote-project-scan]
 
     env:
       IMAGE_NAME: "book-library-app"
@@ -215,7 +240,7 @@ jobs:
   # 4) Final Wrapup (cleanup), always runs after all previous jobs
   final-wrapup:
     runs-on: self-hosted
-    needs: [initial-deploy, code-security, container-and-dast]
+    needs: [initial-deploy, snyk-remote-project-scan, container-and-dast]
     if: always()
 
     env:
