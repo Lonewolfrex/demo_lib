@@ -1,4 +1,4 @@
-name: CI - Full Pipeline (Deploy → Code → Security → Cleanup)
+name: CI - Full Pipeline (Code → Remote Snyk → ZAP → Cleanup)
 
 on:
   push:
@@ -7,76 +7,9 @@ on:
     branches: [ main, dev, v1 ]
 
 jobs:
-  # 1) Initial App Deployment (build + run)
-  initial-deploy:
-    runs-on: self-hosted
-
-    env:
-      IMAGE_NAME: "book-library-app"
-      IMAGE_TAG: "${{ github.sha }}"
-      LOGIN_URL: "http://localhost:8001/login/"
-
-    outputs:
-      image-name: ${{ env.IMAGE_NAME }}
-      image-tag: ${{ env.IMAGE_TAG }}
-      container-id: ${{ steps.run_container.outputs.container_id }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Show Docker version
-        run: docker version
-
-      - name: Pre-clean existing containers for this image
-        run: |
-          Write-Host "Cleaning containers created from $env:IMAGE_NAME`:$env:IMAGE_TAG..."
-          $containers = docker ps -a --filter "ancestor=$env:IMAGE_NAME`:$env:IMAGE_TAG" --format "{{.ID}}"
-          foreach ($cid in $containers) {
-            Write-Host "Stopping container $cid"
-            docker stop $cid 2>$null
-            Write-Host "Removing container $cid"
-            docker rm $cid 2>$null
-          }
-
-      - name: Build Docker image
-        run: |
-          docker build -t "$env:IMAGE_NAME`:$env:IMAGE_TAG" .
-
-      - name: Run app container
-        id: run_container
-        run: |
-          $CONTAINER_ID = docker run -d -p 8001:8001 "$env:IMAGE_NAME`:$env:IMAGE_TAG"
-          Write-Host "Container started: $CONTAINER_ID"
-          echo "container_id=$CONTAINER_ID" >> $env:GITHUB_OUTPUT
-
-      - name: Wait for app to be ready
-        run: |
-          $loginUrl = "$env:LOGIN_URL"
-          $maxAttempts = 10
-          $attempt = 1
-          while ($attempt -le $maxAttempts) {
-            Write-Host "Checking app health at $loginUrl (attempt $attempt/$maxAttempts)..."
-            try {
-              $resp = Invoke-WebRequest -Uri $loginUrl -Method GET -UseBasicParsing -TimeoutSec 5
-              if ($resp.StatusCode -eq 200) {
-                Write-Host "App is up."
-                break
-              }
-            } catch {
-              Write-Host "App not ready yet: $($_.Exception.Message)"
-            }
-            Start-Sleep -Seconds 3
-            $attempt++
-          }
-          if ($attempt -gt $maxAttempts) {
-            throw "App did not become ready in time."
-          }
-
-  # 2) Code build/tests (no local Snyk here now), runs after initial-deploy
+  # 1) Code setup (tests etc. if you want)
   code-security:
     runs-on: ubuntu-latest
-    needs: initial-deploy
 
     steps:
       - name: Checkout repository
@@ -98,15 +31,15 @@ jobs:
       # - name: Run tests
       #   run: python manage.py test
 
-  # 2b) Remote Snyk scan via API for already-imported project
+  # 2) Remote Snyk scan via API for already-imported project
   snyk-remote-project-scan:
     runs-on: ubuntu-latest
     needs: code-security
 
     env:
       SNYK_API_URL: "https://api.snyk.io"
-      SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
-      SNYK_PROJECT_ID: ${{ secrets.SNYK_PROJECT_ID }}
+      SNYK_ORG_ID: ${{ vars.SNYK_ORG_ID }}
+      SNYK_PROJECT_ID: ${{ vars.SNYK_PROJECT_ID }}
 
     steps:
       - name: Create Snyk report directory
@@ -116,11 +49,12 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          echo "Fetching Snyk issues for org $env:SNYK_ORG_ID project $env:SNYK_PROJECT_ID"
-          curl -sS ^
-            -H "Authorization: token $env:SNYK_TOKEN" ^
-            -H "Content-Type: application/json" ^
-            "%SNYK_API_URL%/api/v1/org/%SNYK_ORG_ID%/project/%SNYK_PROJECT_ID%/issues" ^
+          echo "Fetching Snyk issues for org $SNYK_ORG_ID project $SNYK_PROJECT_ID"
+
+          curl -sS \
+            -H "Authorization: token $SNYK_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$SNYK_API_URL/api/v1/org/$SNYK_ORG_ID/project/$SNYK_PROJECT_ID/issues" \
             -o snyk-remote-report/snyk-report.json
 
       - name: Upload Snyk remote report
@@ -130,10 +64,10 @@ jobs:
           path: snyk-remote-report/snyk-report.json
           if-no-files-found: error
 
-  # 3) Container runtime & ZAP DAST, runs after remote Snyk scan
-  container-and-dast:
+  # 3) Container runtime & ZAP DAST on self-hosted Windows
+  app-and-zap:
     runs-on: self-hosted
-    needs: [initial-deploy, snyk-remote-project-scan]
+    needs: snyk-remote-project-scan
 
     env:
       IMAGE_NAME: "book-library-app"
@@ -240,7 +174,7 @@ jobs:
   # 4) Final Wrapup (cleanup), always runs after all previous jobs
   final-wrapup:
     runs-on: self-hosted
-    needs: [initial-deploy, snyk-remote-project-scan, container-and-dast]
+    needs: [code-security, snyk-remote-project-scan, app-and-zap]
     if: always()
 
     env:
