@@ -28,6 +28,17 @@ jobs:
       - name: Show Docker version
         run: docker version
 
+      - name: Pre-clean existing containers for this image
+        run: |
+          Write-Host "Cleaning containers created from $env:IMAGE_NAME`:$env:IMAGE_TAG..."
+          $containers = docker ps -a --filter "ancestor=$env:IMAGE_NAME`:$env:IMAGE_TAG" --format "{{.ID}}"
+          foreach ($cid in $containers) {
+            Write-Host "Stopping container $cid"
+            docker stop $cid 2>$null
+            Write-Host "Removing container $cid"
+            docker rm $cid 2>$null
+          }
+
       - name: Build Docker image
         run: |
           docker build -t "$env:IMAGE_NAME`:$env:IMAGE_TAG" .
@@ -116,6 +127,17 @@ jobs:
 
       - name: Show Docker version
         run: docker version
+
+      - name: Pre-clean existing containers for this image
+        run: |
+          Write-Host "Cleaning containers created from $env:IMAGE_NAME`:$env:IMAGE_TAG..."
+          $containers = docker ps -a --filter "ancestor=$env:IMAGE_NAME`:$env:IMAGE_TAG" --format "{{.ID}}"
+          foreach ($cid in $containers) {
+            Write-Host "Stopping container $cid"
+            docker stop $cid 2>$null
+            Write-Host "Removing container $cid"
+            docker rm $cid 2>$null
+          }
 
       - name: Build Docker image
         run: |
