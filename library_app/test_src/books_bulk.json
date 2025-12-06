@@ -1,0 +1,370 @@
+[
+  {
+    "title": "The Hobbit",
+    "author": "J.R.R. Tolkien",
+    "genre": "Fantasy",
+    "price": 399,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "The Fellowship of the Ring",
+    "author": "J.R.R. Tolkien",
+    "genre": "Fantasy",
+    "price": 499,
+    "discount_percent": 15,
+    "available": true
+  },
+  {
+    "title": "Harry Potter and the Sorcerer's Stone",
+    "author": "J.K. Rowling",
+    "genre": "Fantasy",
+    "price": 350,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "A Game of Thrones",
+    "author": "George R.R. Martin",
+    "genre": "Fantasy",
+    "price": 550,
+    "discount_percent": 20,
+    "available": true
+  },
+  {
+    "title": "The Name of the Wind",
+    "author": "Patrick Rothfuss",
+    "genre": "Fantasy",
+    "price": 450,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "Dune",
+    "author": "Frank Herbert",
+    "genre": "Science Fiction",
+    "price": 499,
+    "discount_percent": 15,
+    "available": true
+  },
+  {
+    "title": "Neuromancer",
+    "author": "William Gibson",
+    "genre": "Science Fiction",
+    "price": 399,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Ender's Game",
+    "author": "Orson Scott Card",
+    "genre": "Science Fiction",
+    "price": 350,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "The Martian",
+    "author": "Andy Weir",
+    "genre": "Science Fiction",
+    "price": 425,
+    "discount_percent": 15,
+    "available": true
+  },
+  {
+    "title": "Project Hail Mary",
+    "author": "Andy Weir",
+    "genre": "Science Fiction",
+    "price": 475,
+    "discount_percent": 15,
+    "available": true
+  },
+
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "genre": "Dystopian",
+    "price": 299,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "Brave New World",
+    "author": "Aldous Huxley",
+    "genre": "Dystopian",
+    "price": 320,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "The Handmaid's Tale",
+    "author": "Margaret Atwood",
+    "genre": "Dystopian",
+    "price": 360,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Fahrenheit 451",
+    "author": "Ray Bradbury",
+    "genre": "Dystopian",
+    "price": 280,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "Snow Crash",
+    "author": "Neal Stephenson",
+    "genre": "Dystopian",
+    "price": 420,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "The Girl with the Dragon Tattoo",
+    "author": "Stieg Larsson",
+    "genre": "Mystery / Thriller",
+    "price": 399,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Gone Girl",
+    "author": "Gillian Flynn",
+    "genre": "Mystery / Thriller",
+    "price": 380,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "The Da Vinci Code",
+    "author": "Dan Brown",
+    "genre": "Mystery / Thriller",
+    "price": 350,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "The Silent Patient",
+    "author": "Alex Michaelides",
+    "genre": "Mystery / Thriller",
+    "price": 340,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "The Thursday Murder Club",
+    "author": "Richard Osman",
+    "genre": "Mystery / Thriller",
+    "price": 360,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "genre": "Romance",
+    "price": 250,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "The Notebook",
+    "author": "Nicholas Sparks",
+    "genre": "Romance",
+    "price": 320,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Me Before You",
+    "author": "Jojo Moyes",
+    "genre": "Romance",
+    "price": 340,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "The Time Traveler's Wife",
+    "author": "Audrey Niffenegger",
+    "genre": "Romance",
+    "price": 360,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "It Ends With Us",
+    "author": "Colleen Hoover",
+    "genre": "Romance",
+    "price": 380,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "The Shining",
+    "author": "Stephen King",
+    "genre": "Horror",
+    "price": 360,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Dracula",
+    "author": "Bram Stoker",
+    "genre": "Horror",
+    "price": 260,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "The Haunting of Hill House",
+    "author": "Shirley Jackson",
+    "genre": "Horror",
+    "price": 320,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "Mexican Gothic",
+    "author": "Silvia Moreno-Garcia",
+    "genre": "Horror",
+    "price": 340,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Bird Box",
+    "author": "Josh Malerman",
+    "genre": "Horror",
+    "price": 310,
+    "discount_percent": 5,
+    "available": true
+  },
+
+  {
+    "title": "Sapiens: A Brief History of Humankind",
+    "author": "Yuval Noah Harari",
+    "genre": "Non-Fiction / History",
+    "price": 499,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Atomic Habits",
+    "author": "James Clear",
+    "genre": "Non-Fiction / Self-Help",
+    "price": 399,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Thinking, Fast and Slow",
+    "author": "Daniel Kahneman",
+    "genre": "Non-Fiction / Psychology",
+    "price": 450,
+    "discount_percent": 15,
+    "available": true
+  },
+  {
+    "title": "Educated",
+    "author": "Tara Westover",
+    "genre": "Non-Fiction / Memoir",
+    "price": 380,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Becoming",
+    "author": "Michelle Obama",
+    "genre": "Non-Fiction / Memoir",
+    "price": 450,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "The Alchemist",
+    "author": "Paulo Coelho",
+    "genre": "Fiction",
+    "price": 299,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "The Kite Runner",
+    "author": "Khaled Hosseini",
+    "genre": "Fiction",
+    "price": 340,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "The Midnight Library",
+    "author": "Matt Haig",
+    "genre": "Fiction",
+    "price": 350,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Normal People",
+    "author": "Sally Rooney",
+    "genre": "Fiction",
+    "price": 330,
+    "discount_percent": 5,
+    "available": true
+  },
+  {
+    "title": "Where the Crawdads Sing",
+    "author": "Delia Owens",
+    "genre": "Fiction",
+    "price": 360,
+    "discount_percent": 10,
+    "available": true
+  },
+
+  {
+    "title": "The Subtle Art of Not Giving a F*ck",
+    "author": "Mark Manson",
+    "genre": "Non-Fiction / Self-Help",
+    "price": 320,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Deep Work",
+    "author": "Cal Newport",
+    "genre": "Non-Fiction / Productivity",
+    "price": 340,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Can't Hurt Me",
+    "author": "David Goggins",
+    "genre": "Non-Fiction / Memoir",
+    "price": 380,
+    "discount_percent": 10,
+    "available": true
+  },
+  {
+    "title": "Rich Dad Poor Dad",
+    "author": "Robert T. Kiyosaki",
+    "genre": "Non-Fiction / Finance",
+    "price": 299,
+    "discount_percent": 0,
+    "available": true
+  },
+  {
+    "title": "The Psychology of Money",
+    "author": "Morgan Housel",
+    "genre": "Non-Fiction / Finance",
+    "price": 350,
+    "discount_percent": 10,
+    "available": true
+  }
+]
