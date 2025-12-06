@@ -139,7 +139,6 @@ jobs:
             throw
           }
 
-
       - name: Run ZAP baseline scan
         run: |
           New-Item -ItemType Directory -Path "./zap-reports" -Force | Out-Null
@@ -166,7 +165,7 @@ jobs:
 
     env:
       # IP/DNS of your self-hosted Windows runner where Docker exposes 8001
-      APP_BASE_URL: "http://<SELF_HOST_IP>:8001"
+      APP_BASE_URL: "http://host.docker.internal:8001"
       CI: "true"
 
     steps:
