@@ -160,7 +160,7 @@ jobs:
 
   # 4) Functional testing (UI + API via pytest) after security testing
   functional-testing:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted 
     needs: app-and-zap
 
     env:
@@ -199,18 +199,22 @@ jobs:
           APP_BASE_URL: ${{ env.APP_BASE_URL }}
           CI: "true"
         run: |
-          # Sanity check app is reachable from Ubuntu runner
-          curl -I "$APP_BASE_URL" || exit 1
-
-          # Collect tests
-          pytest tests/functional_tests --collect-only -q
+          Write-Host "Checking app health at $env:APP_BASE_URL"
+          try {
+            $resp = Invoke-WebRequest -Uri $env:APP_BASE_URL -Method GET -UseBasicParsing -TimeoutSec 10
+            Write-Host "App status: $($resp.StatusCode)"
+          } catch {
+            Write-Host "App not reachable: $($_.Exception.Message)"
+            throw
+          }
 
           # Run tests in parallel with HTML + Allure reports
-          pytest tests/functional_tests \
-            -v -n 2 \
-            --html=tests/functional_tests/reports/report.html \
-            --self-contained-html \
-            --alluredir=tests/functional_tests/reports/allure-results
+          pytest tests/functional `
+            -v `
+            -n 2 `
+            --html=tests/functional/reports/report.html `
+            --self-contained-html `
+            --alluredir=tests/functional/reports/allure-results
 
       - name: Upload functional test reports
         if: always()
@@ -218,8 +222,8 @@ jobs:
         with:
           name: functional-ui-reports
           path: |
-            tests/functional_tests/reports/report.html
-            tests/functional_tests/reports/allure-results
+            tests/functional/reports/report.html
+            tests/functional/reports/allure-results
           if-no-files-found: warn
 
   # 5) Final Wrapup (cleanup), always runs after all previous jobs.
