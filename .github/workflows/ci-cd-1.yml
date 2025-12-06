@@ -171,7 +171,7 @@ jobs:
           path: zap-reports/zap-report.html
           if-no-files-found: error
 
-  # 4) Final Wrapup (cleanup), always runs after all previous jobs
+  # 4) Final Wrapup (cleanup), always runs after all previous jobs.
   final-wrapup:
     runs-on: self-hosted
     needs: [code-security, snyk-remote-project-scan, app-and-zap]
