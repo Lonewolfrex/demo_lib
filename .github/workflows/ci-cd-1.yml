@@ -128,25 +128,17 @@ jobs:
             throw "App did not become ready in time."
           }
 
-      - name: Perform login to app (simple session warm-up)
+      - name: Warm up app (simple login page hit)
         run: |
-          Write-Host "Logging in to $env:LOGIN_URL with test credentials"
-
-          $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
-          $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="")[1].Split('"')[0]
-
-          $body = @{
-            csrfmiddlewaretoken = $csrfToken
-            username = "$env:ZAP_USERNAME"
-            password = "$env:ZAP_PASSWORD"
+          Write-Host "Hitting login page at $env:LOGIN_URL to warm up session"
+          try {
+            $resp = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -UseBasicParsing -TimeoutSec 10
+            Write-Host "Login page status code: $($resp.StatusCode)"
+          } catch {
+            Write-Host "Warm-up GET failed: $($_.Exception.Message)"
+            throw
           }
 
-          Invoke-WebRequest `
-            -Uri $env:LOGIN_URL `
-            -Method POST `
-            -WebSession $session `
-            -Body $body `
-            -ContentType "application/x-www-form-urlencoded"
 
       - name: Run ZAP baseline scan
         run: |
