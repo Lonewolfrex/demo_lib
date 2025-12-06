@@ -11,9 +11,8 @@ from ..forms import DonationBookForm
 def library_home(request):
     tab = request.GET.get("tab", "rent")
 
-    books_qs = Book.objects.all()
-    buyable_qs = Book.objects.filter(price__isnull=False)
-
+    books_qs = Book.objects.all().order_by("id")
+    buyable_qs = Book.objects.filter(price__isnull=False).order_by("id")
     page_number = request.GET.get("page", 1)
 
     if tab == "rent":
