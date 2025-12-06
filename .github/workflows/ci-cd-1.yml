@@ -2,9 +2,9 @@ name: CI - Full Pipeline (Code → Remote Snyk → ZAP → Functional → Cleanu
 
 on:
   push:
-    branches: [ main, dev, v1, feature/** ]
+    branches: [ main, dev, v1, feature/**, v2 ]
   pull_request:
-    branches: [ main, dev, v1 ]
+    branches: [ main, dev, v1, v2 ]
 
 jobs:
   # 1) Code setup (tests etc. if you want)
