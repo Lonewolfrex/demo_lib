@@ -160,12 +160,11 @@ jobs:
 
   # 4) Functional testing (UI + API via pytest) after security testing
   functional-testing:
-    runs-on: self-hosted 
+    runs-on: self-hosted              # ← same Windows runner
     needs: app-and-zap
 
     env:
-      # IP/DNS of your self-hosted Windows runner where Docker exposes 8001
-      APP_BASE_URL: "http://host.docker.internal:8001"
+      APP_BASE_URL: "http://localhost:8001"   # app inside Docker on same host
       CI: "true"
 
     steps:
@@ -175,29 +174,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12.10'
-
-      - name: Install Google Chrome (for Selenium)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-linux-signing-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux-signing-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-        # Headless Chrome + webdriver-manager are used by your conftest.py [web:59][web:63]
+          python-version: '3.12'
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # In case requirements.txt does not yet include them:
+          # Only if not already in requirements.txt:
           pip install pytest pytest-xdist pytest-html allure-pytest selenium webdriver-manager requests
 
-      - name: Run functional UI tests (pytest + Selenium)
+      - name: Check app health from runner
         env:
           APP_BASE_URL: ${{ env.APP_BASE_URL }}
-          CI: "true"
         run: |
           Write-Host "Checking app health at $env:APP_BASE_URL"
           try {
@@ -208,13 +196,16 @@ jobs:
             throw
           }
 
-          # Run tests in parallel with HTML + Allure reports
-          pytest tests/functional `
-            -v `
-            -n 2 `
-            --html=tests/functional/reports/report.html `
+      - name: Run functional UI tests (pytest + Selenium)
+        env:
+          APP_BASE_URL: ${{ env.APP_BASE_URL }}
+          CI: "true"
+        run: |
+          pytest tests/functional_tests `
+            -v -n 2 `
+            --html=tests/functional_tests/reports/report.html `
             --self-contained-html `
-            --alluredir=tests/functional/reports/allure-results
+            --alluredir=tests/functional_tests/reports/allure-results
 
       - name: Upload functional test reports
         if: always()
@@ -222,8 +213,8 @@ jobs:
         with:
           name: functional-ui-reports
           path: |
-            tests/functional/reports/report.html
-            tests/functional/reports/allure-results
+            tests/functional_tests/reports/report.html
+            tests/functional_tests/reports/allure-results
           if-no-files-found: warn
 
   # 5) Final Wrapup (cleanup), always runs after all previous jobs.
