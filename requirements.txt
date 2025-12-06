@@ -1,2 +1,8 @@
 Django>=4.2,<5.0
 djangorestframework==3.15.2 
+selenium==4.25.0
+pytest==8.3.2
+pytest-xdist==3.6.1          # Parallel execution
+pytest-html==4.1.1           # HTML reports
+allure-pytest==2.13.2        # Advanced reports w/ screenshots
+webdriver-manager==4.0.2  
