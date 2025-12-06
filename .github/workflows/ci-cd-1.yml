@@ -194,11 +194,11 @@ jobs:
           APP_BASE_URL: ${{ env.APP_BASE_URL }}
           CI: "true"
         run: |
-          pytest tests/functional_tests `
+          pytest tests/functional `
             -v -n 2 `
-            --html=tests/functional_tests/reports/report.html `
+            --html=tests/functional/reports/report.html `
             --self-contained-html `
-            --alluredir=tests/functional_tests/reports/allure-results
+            --alluredir=tests/functional/reports/allure-results
 
       - name: Upload functional test reports
         if: always()
@@ -206,8 +206,8 @@ jobs:
         with:
           name: functional-ui-reports
           path: |
-            tests/functional_tests/reports/report.html
-            tests/functional_tests/reports/allure-results
+            tests/functional/reports/report.html
+            tests/functional/reports/allure-results
           if-no-files-found: warn
 
   # 5) Final Wrapup (cleanup), always runs after all previous jobs.
