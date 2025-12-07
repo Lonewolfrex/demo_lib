@@ -158,13 +158,13 @@ jobs:
           path: zap-reports/zap-report.html
           if-no-files-found: error
 
-  # 4) Functional testing (UI + API via pytest) after security testing
+  # 4) Functional testing (UI via pytest) after security testing
   functional-testing:
-    runs-on: self-hosted              # ← same Windows runner
+    runs-on: self-hosted
     needs: app-and-zap
 
     env:
-      APP_BASE_URL: "http://localhost:8001"   # app inside Docker on same host
+      APP_BASE_URL: "http://localhost:8001"
       CI: "true"
 
     steps:
@@ -197,8 +197,7 @@ jobs:
           pytest tests/functional `
             -v -n 2 `
             --html=tests/functional/reports/report.html `
-            --self-contained-html `
-            --alluredir=tests/functional/reports/allure-results
+            --self-contained-html
 
       - name: Upload functional test reports
         if: always()
@@ -207,7 +206,6 @@ jobs:
           name: functional-ui-reports
           path: |
             tests/functional/reports/report.html
-            tests/functional/reports/allure-results
           if-no-files-found: warn
 
   # 5) Final Wrapup (cleanup), always runs after all previous jobs.
@@ -237,4 +235,3 @@ jobs:
           foreach ($img in $images) {
             Write-Host "Removing image $img"
             docker rmi $img 2>$null
-          }

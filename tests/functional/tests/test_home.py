@@ -1,4 +1,3 @@
-# tests/functional_tests/tests/test_auth.py
 import pytest
 from pages.base_page import BasePage
 from pages.home_page import HomePage
