@@ -235,3 +235,4 @@ jobs:
           foreach ($img in $images) {
             Write-Host "Removing image $img"
             docker rmi $img 2>$null
+          }
