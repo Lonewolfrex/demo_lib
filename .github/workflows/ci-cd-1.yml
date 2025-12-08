@@ -1,10 +1,10 @@
-name: CI - Full Pipeline (Code → Remote Snyk → ZAP → Cleanup)
+name: CI - Full Pipeline (Code → Remote Snyk → ZAP → Functional → Cleanup)
 
 on:
   push:
-    branches: [ main, dev, v1, feature/** ]
+    branches: [ main, dev, v1, feature/**, v2 ]
   pull_request:
-    branches: [ main, dev, v1 ]
+    branches: [ main, dev, v1, v2 ]
 
 jobs:
   # 1) Code setup (tests etc. if you want)
@@ -20,16 +20,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12.10'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # Optional: run tests here
-      # - name: Run tests
-      #   run: python manage.py test
 
   # 2) Remote Snyk scan via API for already-imported project
   snyk-remote-project-scan:
@@ -132,25 +128,16 @@ jobs:
             throw "App did not become ready in time."
           }
 
-      - name: Perform login to app (simple session warm-up)
+      - name: Warm up app (simple login page hit)
         run: |
-          Write-Host "Logging in to $env:LOGIN_URL with test credentials"
-
-          $response = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -SessionVariable session
-          $csrfToken = ($response.Content -split 'name="csrfmiddlewaretoken" value="')[1].Split('"')[0]
-
-          $body = @{
-            csrfmiddlewaretoken = $csrfToken
-            username = "$env:ZAP_USERNAME"
-            password = "$env:ZAP_PASSWORD"
+          Write-Host "Hitting login page at $env:LOGIN_URL to warm up session"
+          try {
+            $resp = Invoke-WebRequest -Uri $env:LOGIN_URL -Method GET -UseBasicParsing -TimeoutSec 10
+            Write-Host "Login page status code: $($resp.StatusCode)"
+          } catch {
+            Write-Host "Warm-up GET failed: $($_.Exception.Message)"
+            throw
           }
-
-          Invoke-WebRequest `
-            -Uri $env:LOGIN_URL `
-            -Method POST `
-            -WebSession $session `
-            -Body $body `
-            -ContentType "application/x-www-form-urlencoded"
 
       - name: Run ZAP baseline scan
         run: |
@@ -171,10 +158,60 @@ jobs:
           path: zap-reports/zap-report.html
           if-no-files-found: error
 
-  # 4) Final Wrapup (cleanup), always runs after all previous jobs.
+  # 4) Functional testing (UI via pytest) after security testing
+  functional-testing:
+    runs-on: self-hosted
+    needs: app-and-zap
+
+    env:
+      APP_BASE_URL: "http://localhost:8001"
+      CI: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check app health from runner
+        env:
+          APP_BASE_URL: ${{ env.APP_BASE_URL }}
+        run: |
+          Write-Host "Checking app health at $env:APP_BASE_URL"
+          try {
+            $resp = Invoke-WebRequest -Uri $env:APP_BASE_URL -Method GET -UseBasicParsing -TimeoutSec 10
+            Write-Host "App status: $($resp.StatusCode)"
+          } catch {
+            Write-Host "App not reachable: $($_.Exception.Message)"
+            throw
+          }
+
+      - name: Run functional UI tests (pytest + Selenium)
+        env:
+          APP_BASE_URL: ${{ env.APP_BASE_URL }}
+          CI: "true"
+        run: |
+          pytest tests/functional `
+            -v -n 2 `
+            --html=tests/functional/reports/report.html `
+            --self-contained-html
+
+      - name: Upload functional test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-ui-reports
+          path: |
+            tests/functional/reports/report.html
+          if-no-files-found: warn
+
+  # 5) Final Wrapup (cleanup), always runs after all previous jobs.
   final-wrapup:
     runs-on: self-hosted
-    needs: [code-security, snyk-remote-project-scan, app-and-zap]
+    needs: [code-security, snyk-remote-project-scan, app-and-zap, functional-testing]
     if: always()
 
     env:
